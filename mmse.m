@@ -18,6 +18,14 @@ function [mse,t]=mmse(N,variance,P0,mode)
     nLoS_PLE = L0*power((AP_UE_dis),alpha_nLoS);
     epsilon = power(10,-4);
 
+
+    %Fading Channel
+    Rayleigh_fading = sqrt(0.5) * (randn(size(s)) + 1i * randn(size(s)));
+    K = 10;
+    K_linear = 10^(K/10);
+    LoS = sqrt(K_linear / (K_linear + 1));
+    nLoS = sqrt(1 / (K_linear + 1)) * (randn(size(s)) + 1i * randn(size(s)));
+
     noise_var = power(10,-11);
     noise = sqrt(noise_var)*randn(1,1,"like",1i);
 
@@ -93,7 +101,7 @@ function [mse,t]=mmse(N,variance,P0,mode)
         
             %% Calculate mse
             fprintf('\tCalculate mmse...\n\n');
-            y_hat = ((hr'*btheta*G*w*s)*LoS_PLE+(hd'*w*s)*nLoS_PLE)+noise;
+            y_hat = ((hr'*btheta*G*w*s)*LoS*LoS_PLE+nLoS*LoS_PLE+(hd'*w*s)*Rayleigh_fading*nLoS_PLE)+noise;
             s_hat = c*y_hat;
             if(t==1)
                 mse = mean(power(abs(s_hat-s),2));
