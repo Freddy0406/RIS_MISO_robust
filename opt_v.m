@@ -9,7 +9,7 @@ while true
     
     next_v = -exp(1i*angle(u));
 
-    if(sum(next_v-v)==0)
+    if(sum(next_v-v)<power(10,-20))
         break;
     else
     end
