@@ -2,21 +2,45 @@ clc;
 clear;
 close all;
 
-avg_N = 10;
+avg_N = 1000;
 sigma_arr = [0.05 0.02 0.01];
-avg_mse = zeros(2,length(sigma_arr));
-success = 0;
+tx_power_arr = [round(power(10,0),5) round(power(10,0.5),5) round(power(10,1),5) round(power(10,1.5),5) round(power(10,2),5)];
+avg_mse_robust = zeros(3,5);
+iteration = 1000;
 
-for a = 1:length(sigma_arr)
-    for b = 1:avg_N
-        initial(40,sigma_arr(a),round(power(10,0.2),10));
-        [mse,~]=mmse(1);
-        success = success+1
-        avg_mse(1,a) = avg_mse(1,a)+mse;
-%         [mse,~]=mmse(2);
-%         avg_mse(2,a) = avg_mse(2,a)+mse;
+% for sig = 1:length(sigma_arr)
+%     for power_index = 1:length(tx_power_arr)
+%         for b = 1:avg_N
+%             [mse,~]=mmse(40,sigma_arr(sig),tx_power_arr(power_index),1);
+%             avg_mse_robust(sig,power_index) = avg_mse_robust(sig,power_index)+mse;
+%         end
+%     end
+% end
+
+% Then construct a ParforProgressbar object:
+ppm = ParforProgressbar(iteration);
+ppm = ParforProgressbar(iteration, 'showWorkerProgress', true);
+
+
+parfor i=1:avg_N
+    temp = zeros(3,5);
+    for sig = 1:length(sigma_arr)
+        for power_index = 1:length(tx_power_arr)
+            [mse,~]=mmse(40,sigma_arr(sig),tx_power_arr(power_index),1);
+            temp(sig,power_index) = mse;
+        end
     end
+    avg_mse_robust = avg_mse_robust+temp;
+
+    pause(100/iteration);
+    % increment counter to track progress
+    ppm.increment();
 end
 
-avg_mse = avg_mse./avg_N;
+% Delete the progress handle when the parfor loop is done (otherwise the timer that keeps updating the progress might not stop).
+delete(ppm);
+
+
+
+avg_mse_robust = avg_mse_robust./avg_N;
 

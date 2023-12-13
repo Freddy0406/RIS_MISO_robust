@@ -1,4 +1,5 @@
 function [new_v] = opt_v(Q,q,v)
+i = 0;
 while true
 
     [V,D] = eig(Q);
@@ -12,7 +13,13 @@ while true
         break;
     else
     end
-    v = next_v;
+
+    v = next_v;  
+
+    i=i+1;
+    if(i>40000)
+        break;
+    end
 end   
     new_v = next_v;
 end
