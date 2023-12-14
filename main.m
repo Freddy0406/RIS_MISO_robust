@@ -2,36 +2,38 @@ clc;
 clear;
 close all;
 
-avg_N = 1000;
-sigma_arr = [0.05 0.02 0.01];
+avg_N = 1000;                         % Average times
+variance_arr = [0.05 0.02 0.01];    % Figure 1 with different variance
 tx_power_arr = [round(power(10,0),5) round(power(10,0.5),5) round(power(10,1),5) round(power(10,1.5),5) round(power(10,2),5)];
+% Figure 1 with different transmit power
+
 avg_mse_robust = zeros(3,5);
-iteration = 1000;
-
-% Then construct a ParforProgressbar object:
-% ppm = ParforProgressbar(iteration);
-% ppm = ParforProgressbar(iteration, 'showWorkerProgress', true);
+avg_mse_nonrobust = zeros(3,5);
+iteration = avg_N;                  %parfor iteration
 
 
-for i=1:avg_N
-    temp = zeros(3,5);
-    for sig = 1:length(sigma_arr)
+%% To make figure 1
+
+ppm = ParforProgressbar(iteration);
+ppm = ParforProgressbar(iteration, 'showWorkerProgress', true);
+parfor i=1:avg_N
+    temp_robust = zeros(3,5);
+    temp_nonrobust = zeros(3,5);
+    for sig = 1:length(variance_arr)
         for power_index = 1:length(tx_power_arr)
-            [mse,~]=mmse(40,sigma_arr(sig),tx_power_arr(power_index),1);
-            temp(sig,power_index) = mse;
+            [mse,~]=mmse(40,variance_arr(sig),tx_power_arr(power_index),1,0);
+            temp_robust(sig,power_index) = mse;
+            [mse,~]=mmse(40,variance_arr(sig),tx_power_arr(power_index),2,0);
+            temp_nonrobust(sig,power_index) = mse;
         end
     end
-    avg_mse_robust = avg_mse_robust+temp;
-
-%     pause(100/iteration);
-%     % increment counter to track progress
-%     ppm.increment();
+    avg_mse_robust = avg_mse_robust+temp_robust;
+    avg_mse_nonrobust = avg_mse_nonrobust+temp_nonrobust;
+    pause(100/iteration);
+    ppm.increment();
 end
-
-% Delete the progress handle when the parfor loop is done (otherwise the timer that keeps updating the progress might not stop).
-% delete(ppm);
-
-
+delete(ppm);
 
 avg_mse_robust = avg_mse_robust./avg_N;
+avg_mse_nonrobust = avg_mse_nonrobust./avg_N;
 

@@ -15,7 +15,7 @@ while(1)
     elseif(round( power( norm(w),2 ) , 5) == P0)
         break;
     end
-    i=i+1;
+    i=i+1
     % if(i>1000)
     %     break;
     % end

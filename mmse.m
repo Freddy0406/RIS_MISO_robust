@@ -1,6 +1,6 @@
-function [mse,t]=mmse(N,variance,P0,mode)
+function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
 %% Initialization parameter
-    %N Reflecting element amount per RIS
+    %N  Reflecting element amount per RIS
     %P0 Maximum transmit power of BS
     %variance var_g=var_r=var_d=var
     M = 4;                          %BS antenna amount
@@ -9,73 +9,72 @@ function [mse,t]=mmse(N,variance,P0,mode)
     AP_loc = [0 0];                 %AP location
     IRS_loc = [100,0];              %IRS location
     UE_loc = [100 20];              %User location
-    AP_UE_dis = sqrt(sum((UE_loc-AP_loc).^2));  
-    AP_IRS_dis = sqrt(sum((AP_loc-IRS_loc).^2));
-    UE_IRS_dis = sqrt(sum((UE_loc-IRS_loc).^2));
-    alpha_LoS = -2;
-    alpha_nLoS = -3;
-    LoS_PLE =  L0*power((AP_IRS_dis+UE_IRS_dis),alpha_LoS);
-    nLoS_PLE = L0*power((AP_UE_dis),alpha_nLoS);
-    epsilon = power(10,-4);
+
+    AP_UE_dis = sqrt(sum((UE_loc-AP_loc).^2));              %AP-UE distance  
+    AP_IRS_dis = sqrt(sum((AP_loc-IRS_loc).^2));            %AP-IRS distance
+    UE_IRS_dis = sqrt(sum((UE_loc-IRS_loc).^2));            %UE-IRS distance
+    alpha_LoS = -2;                                         %Path Loss Exponent of LoS(AP->IRS->UE)
+    alpha_nLoS = -3;                                        %Path Loss Exponent of non-LoS(AP->UE)
+    LoS_PL =  L0*power((AP_IRS_dis+UE_IRS_dis),alpha_LoS);  %Path Loss of LoS(AP->IRS->UE)
+    nLoS_PL = L0*power((AP_UE_dis),alpha_nLoS);             %Path Loss of non-LoS(AP->UE)
+    epsilon = power(10,-4);                                 %Limit of optimization iteration
 
 
     %Fading Channel
-    Rayleigh_fading = sqrt(0.5) * (randn(size(s)) + 1i * randn(size(s)));
-    K = 10;
-    K_linear = 10^(K/10);
-    LoS = sqrt(K_linear / (K_linear + 1));
-    nLoS = sqrt(1 / (K_linear + 1)) * (randn(size(s)) + 1i * randn(size(s)));
+    Rayleigh_fading = sqrt(0.5) * (randn(size(s)) + 1i * randn(size(s)));       %Random Rayleigh fading noise
+                                                                                %Use in non-LoS(AP->UE)
 
-    noise_var = power(10,-11);
-    noise = sqrt(noise_var)*randn(1,1,"like",1i);
+    K = 10;                                                                     %Rician fading factor
+    K_linear = 10^(K/10);                                                       %Use in LoS(AP->IRS->UE)
+    LoS = sqrt(K_linear / (K_linear + 1));                                      %Rician fading main lobe
+    nLoS = sqrt(1 / (K_linear + 1)) * (randn(size(s)) + 1i * randn(size(s)));   %Rician fading side lobe
 
+    %Noise
+    noise_var = power(10,-11);                      %var_n = 110dBm = 10^-11 mW
+    noise = sqrt(noise_var)*randn(1,1,"like",1i);   %Generate random 1X1 noise
 
-    % Initialize w
+        % Initialize w 
     w = zeros(M,1);
-
     for i = 1:M
         w(i) = sqrt(P0)/sqrt(M);
     end
 
-    % Initialize theta
+    % Initialize theta (Start with random phases)
     min = 0;
     max = 2*pi;
     v = exp(1i*(min+rand(N,1)*(max-min)));
     btheta = diag(v);
 
-    % delta_G, delta_hd, delta_hr (AP-IRS, IRS-User, AP-User link)
-    
+    % Generate delta_G, delta_hd, delta_hr (AP-IRS, IRS-User, AP-User link)
     delta_G = sqrt(variance)*randn(N,M,"like",1i);
     delta_hd = sqrt(variance)*randn(M,1,"like",1i);
     delta_hr = sqrt(variance)*randn(N,1,"like",1i);
     
     % Emulate estimation channel
 
-    G = vertcat(eye(M),zeros((N-M),M));      %Ideal channel
-    hd = ones(M,1);                         
-    hr = ones(N,1);
+    G = vertcat(eye(M),zeros((N-M),M));     %Ideal channel => Identity matrix
+    hd = ones(M,1);                         %Ideal channel => All ones                         
+    hr = ones(N,1);                         %Ideal channel => All ones
     
-    G_hat = G-delta_G;
-    hd_hat = hd-delta_hd;
-    hr_hat = hr-delta_hr;
+    G_hat = G-delta_G;          %G = G_hat+delta_G ; G_hat=G-delta_G        (AP-IRS)
+    hd_hat = hd-delta_hd;       %hd = hd_hat+delta_hd ; hd_hat=hd-delta_hd  (IRS-User)
+    hr_hat = hr-delta_hr;       %hr = hr_hat+delta_hr ; hr_hat=hr-delta_hr  (AP-User)
 
-    t=1;
-    %% Start optimization    
-    if (mode==1)            %%mode 1:The proposed robust design
+
+    
+    %% Start optimization   
+    t=1;                    %Set times
+%% mode 1:The proposed robust design
+    if (mode==1)           
         while true
             fprintf('The %d generation...\n',t);
             %% Optimization of c
-            fprintf('\tOptimization of c...\n');
-            hr_hat_norm = 0;
-            for i = 1:length(hr_hat)
-                hr_hat_norm = hr_hat_norm+abs(hr_hat(i));
-            end
-            hr_hat_norm = power(hr_hat_norm,2);
-        
+            fprintf('\tOptimization of c...\n');        
             A = (G_hat'*btheta'*hr_hat)*hr_hat'*btheta*G_hat+...          %According to the formula              
                 hd_hat*hr_hat'*btheta*G_hat+G_hat'*btheta'*hr_hat*hd_hat'+...
-                hd_hat*hd_hat'+variance*hr_hat_norm*eye(M)+(variance*G_hat')*G_hat+...
+                hd_hat*hd_hat'+variance*power(norm(hr_hat),2)*eye(M)+(variance*G_hat')*G_hat+...
                 (N*variance*variance+variance)*eye(M);
+
             alpha = (G_hat'*btheta'*hr_hat+hd_hat);
         
             c = (w'*alpha)/(w'*A*w+noise_var);          %Wiener Filter
@@ -101,7 +100,7 @@ function [mse,t]=mmse(N,variance,P0,mode)
         
             %% Calculate mse
             fprintf('\tCalculate mmse...\n\n');
-            y_hat = ((hr'*btheta*G*w*s)*LoS*LoS_PLE+nLoS*LoS_PLE+(hd'*w*s)*Rayleigh_fading*nLoS_PLE)+noise;
+            y_hat = ((hr'*btheta*G*w*s)*LoS*LoS_PL+nLoS*LoS_PL+(hd'*w*s)*Rayleigh_fading*nLoS_PL)+noise;
             s_hat = c*y_hat;
             if(t==1)
                 mse = mean(power(abs(s_hat-s),2));
@@ -113,34 +112,33 @@ function [mse,t]=mmse(N,variance,P0,mode)
                        
             t = t+1;
         end
-
-    elseif (mode==2)                            %mode 2:The non-robust scheme
-        while true
+%% mode 2:The non-robust scheme
+    elseif (mode==2)                            
+        while true                              %Optimizes the system as if hr_hat, hd_hat and G_hat are perfect
+            fprintf('The %d generation...\n',t);
             %% Optimization of c
-            hr_hat_norm = 0;
-            for i = 1:length(hr_hat)
-                hr_hat_norm = hr_hat_norm+abs(hr_hat(i));
-            end
-            hr_hat_norm = power(hr_hat_norm,2);
-        
-            A = (G_hat'*btheta'*hr_hat)*hr_hat'*btheta*G_hat+...
-                hd_hat*hr_hat'*btheta*G_hat+...
-                hd_hat*hd_hat'+variance*hr_hat_norm*eye(M)+(variance*G_hat')*G_hat+...
+            fprintf('\tOptimization of c...\n');
+            A = (G_hat'*btheta'*hr_hat)*hr_hat'*btheta*G_hat+...          %According to the formula              
+                hd_hat*hr_hat'*btheta*G_hat+G_hat'*btheta'*hr_hat*hd_hat'+...
+                hd_hat*hd_hat'+variance*power(norm(hr_hat),2)*eye(M)+(variance*G_hat')*G_hat+...
                 (N*variance*variance+variance)*eye(M);
+
             alpha = (G_hat'*btheta'*hr_hat+hd_hat);
         
             c = (w'*alpha)/(w'*A*w+noise_var);
         
             %% Optimization of w
-            w = power((power(abs(c),2)*A),-1)*(alpha*conj(c));
-        
-            if(power(norm(w,1),2)>P0)
+            fprintf('\tOptimization of w...\n');
+            w = (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            power(norm(w),2);
+            if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = power(((power(abs(c),2)*A+lambda*eye(M))),-1)*(alpha*conj(c));
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             else
             end
             
             %% Optimization of theta
+            fprintf('\tOptimization of btheta...\n');
             Phi = diag(hr_hat')*G_hat*w*c;
             d = hd_hat'*w*c;
             Q = Phi*Phi';
@@ -149,7 +147,8 @@ function [mse,t]=mmse(N,variance,P0,mode)
             btheta = diag(new_v);
         
             %% Calculate mse
-            y_hat = ((hr_hat'*btheta*G_hat*w*s)*LoS_PLE+(hd_hat'*w*s)*nLoS_PLE)+noise;
+            fprintf('\tCalculate mmse...\n\n');
+            y_hat = ((hr_hat'*btheta*G_hat*w*s)*LoS*LoS_PL+nLoS*LoS_PL+(hd_hat'*w*s)*Rayleigh_fading*nLoS_PL)+noise;
             s_hat = c*y_hat;
             if(t==1)
                 mse = mean(power(abs(s_hat-s),2));
@@ -158,13 +157,95 @@ function [mse,t]=mmse(N,variance,P0,mode)
                 break;
             elseif((mean(power(abs(s_hat-s),2))-mse)<=power(10,-4))
                 break;
-            end
-           
+            end            
             t = t+1;
         end
+%% mode 3:The discrete phase shifts scheme
+    elseif (mode==3)        
+        while true                              
+            fprintf('The %d generation...\n',t);
+            %% Optimization of c
+            fprintf('\tOptimization of c...\n');
+            A = (G_hat'*btheta'*hr_hat)*hr_hat'*btheta*G_hat+...          %According to the formula              
+                hd_hat*hr_hat'*btheta*G_hat+G_hat'*btheta'*hr_hat*hd_hat'+...
+                hd_hat*hd_hat'+variance*power(norm(hr_hat),2)*eye(M)+(variance*G_hat')*G_hat+...
+                (N*variance*variance+variance)*eye(M);
 
-    elseif (mode==3)        %mode 3:The discrete phase shifts scheme
-    else                    %mode 4:The scheme when IRS is not deployed(btheta==0)
+            alpha = (G_hat'*btheta'*hr_hat+hd_hat);
+        
+            c = (w'*alpha)/(w'*A*w+noise_var);
+        
+            %% Optimization of w
+            fprintf('\tOptimization of w...\n');
+            w = (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            power(norm(w),2);
+            if(power(norm(w),2)>P0)
+                [lambda] = search(c,alpha,A,P0,M);
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+            else
+            end
+            %% Optimization of theta
+            fprintf('\tOptimization of btheta...\n');
+            Phi = diag(hr_hat')*G_hat*w*c;
+            d = hd_hat'*w*c;
+            Q = Phi*Phi';
+            q = Phi*(1-conj(d)');
+            [new_v] = opt_v(Q,q,v);
+            [final_v] = discetet_phase(bit_of_phase,new_v);
+            btheta = diag(final_v);
+        
+            %% Calculate mse
+            fprintf('\tCalculate mmse...\n\n');
+            y_hat = ((hr'*btheta*G*w*s)*LoS*LoS_PL+nLoS*LoS_PL+(hd'*w*s)*Rayleigh_fading*nLoS_PL)+noise;
+            s_hat = c*y_hat;
+            if(t==1)
+                mse = mean(power(abs(s_hat-s),2));
+            elseif((mean(power(abs(s_hat-s),2))-mse)>power(10,-4))
+                mse = mean(power(abs(s_hat-s),2));
+                break;
+            elseif((mean(power(abs(s_hat-s),2))-mse)<=power(10,-4))
+                break;
+            end            
+            t = t+1;
+        end
+%% mode 4:The scheme when IRS is not deployed(btheta==0)        
+    else                    
+        while true
+            btheta = 0;
+            fprintf('The %d generation...\n',t);
+            %% Optimization of c
+            fprintf('\tOptimization of c...\n');
+            A = (G_hat'*btheta'*hr_hat)*hr_hat'*btheta*G_hat+...          %According to the formula              
+                hd_hat*hr_hat'*btheta*G_hat+G_hat'*btheta'*hr_hat*hd_hat'+...
+                hd_hat*hd_hat'+variance*power(norm(hr_hat),2)*eye(M)+(variance*G_hat')*G_hat+...
+                (N*variance*variance+variance)*eye(M);
 
+            alpha = (G_hat'*btheta'*hr_hat+hd_hat);
+        
+            c = (w'*alpha)/(w'*A*w+noise_var);
+        
+            %% Optimization of w
+            fprintf('\tOptimization of w...\n');
+            w = (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            power(norm(w),2);
+            if(power(norm(w),2)>P0)
+                [lambda] = search(c,alpha,A,P0,M);
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+            else
+            end
+            %% Calculate mse
+            fprintf('\tCalculate mmse...\n\n');
+            y_hat = ((hr'*btheta*G*w*s)*LoS*LoS_PL+nLoS*LoS_PL+(hd'*w*s)*Rayleigh_fading*nLoS_PL)+noise;
+            s_hat = c*y_hat;
+            if(t==1)
+                mse = mean(power(abs(s_hat-s),2));
+            elseif((mean(power(abs(s_hat-s),2))-mse)>power(10,-4))
+                mse = mean(power(abs(s_hat-s),2));
+                break;
+            elseif((mean(power(abs(s_hat-s),2))-mse)<=power(10,-4))
+                break;
+            end            
+            t = t+1;
+        end
     end
 end
