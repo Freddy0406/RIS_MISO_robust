@@ -2,8 +2,8 @@ function [new_v] = opt_v(Q,q,v)
 i = 0;
 while true
 
-    [V,D] = eig(Q);
-    lambda_Q = max(D,[],"all");
+    D = eig(Q);                 %Eigenvalue
+    lambda_Q = max(D,[],"all"); %Find maximum of Eigenvalue
     
     u = (Q-lambda_Q*eye(length(Q)))*v-q;
     
@@ -13,9 +13,7 @@ while true
         break;
     else
     end
-
     v = next_v;  
-
     i=i+1;
     if(i>40000)
         break;

@@ -4,11 +4,12 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
     %P0 Maximum transmit power of BS
     %variance var_g=var_r=var_d=var
     M = 4;                          %BS antenna amount
-    s = randn(1,1,"like",1i);       %Symbol for user(zero-meam, unit power=>variance=1)
     L0 = 10^(-30/10);               %Path loss dB -30dB => linear           
     AP_loc = [0 0];                 %AP location
     IRS_loc = [100,0];              %IRS location
     UE_loc = [100 20];              %User location
+
+    s = randn(1,1,"like",1i);
 
     AP_UE_dis = sqrt(sum((UE_loc-AP_loc).^2));              %AP-UE distance  
     AP_IRS_dis = sqrt(sum((AP_loc-IRS_loc).^2));            %AP-IRS distance
@@ -16,7 +17,9 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
     alpha_LoS = -2;                                         %Path Loss Exponent of LoS(AP->IRS->UE)
     alpha_nLoS = -3;                                        %Path Loss Exponent of non-LoS(AP->UE)
     LoS_PL =  L0*power((AP_IRS_dis+UE_IRS_dis),alpha_LoS);  %Path Loss of LoS(AP->IRS->UE)
+    LoS_PL = 10^(LoS_PL/10); 
     nLoS_PL = L0*power((AP_UE_dis),alpha_nLoS);             %Path Loss of non-LoS(AP->UE)
+    nLoS_PL = 10^(nLoS_PL/10);
     epsilon = power(10,-4);                                 %Limit of optimization iteration
 
 
@@ -83,10 +86,13 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
             fprintf('\tOptimization of w...\n');
             w = (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
             power(norm(w),2);
+            
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
                 w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             else
+                lambda = 0;
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             end
             
             %% Optimization of theta
