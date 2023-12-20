@@ -4,12 +4,17 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
     %P0 Maximum transmit power of BS
     %variance var_g=var_r=var_d=var
     M = 4;                          %BS antenna amount
-    L0 = 10^(-30/10);               %Path loss dB -30dB => linear           
+    L0 = -30;                       %Path loss dB -30dB         
     AP_loc = [0 0];                 %AP location
     IRS_loc = [100,0];              %IRS location
     UE_loc = [100 20];              %User location
 
-    s = randn(1,1,"like",1i);
+    s = rand;
+    if(s>0.5)
+        s = 1;
+    else 
+        s = -1;
+    end
 
     AP_UE_dis = sqrt(sum((UE_loc-AP_loc).^2));              %AP-UE distance  
     AP_IRS_dis = sqrt(sum((AP_loc-IRS_loc).^2));            %AP-IRS distance
@@ -84,15 +89,15 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Optimization of w
             fprintf('\tOptimization of w...\n');
-            w = (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            w =  (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
             power(norm(w),2);
             
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
             else
                 lambda = 0;
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
             end
             
             %% Optimization of theta
@@ -102,17 +107,20 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
             Q = Phi*Phi';
             q = Phi*(1-conj(d)');
             [new_v] = opt_v(Q,q,v);
-            btheta = diag(new_v);
+            v = new_v;
+            btheta = diag(v);
         
             %% Calculate mse
             fprintf('\tCalculate mmse...\n\n');
-            y_hat = ((hr'*btheta*G*w*s)*LoS*LoS_PL+nLoS*LoS_PL+(hd'*w*s)*Rayleigh_fading*nLoS_PL)+noise;
+            y_hat = ((hr'*btheta*G*w*s)*LoS*LoS_PL+nLoS*LoS_PL+...
+                (hd'*w*s)*Rayleigh_fading*nLoS_PL)+noise;
             s_hat = c*y_hat;
             if(t==1)
                 mse = mean(power(abs(s_hat-s),2));
             elseif((mean(power(abs(s_hat-s),2))-mse)>epsilon)
                 mse = mean(power(abs(s_hat-s),2));
             elseif((mean(power(abs(s_hat-s),2))-mse)<=epsilon)
+                mse = mean(power(abs(s_hat-s),2));
                 break;
             end
                        
@@ -139,8 +147,10 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
             power(norm(w),2);
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
             else
+                lambda = 0;
+                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
             end
             
             %% Optimization of theta
@@ -158,10 +168,11 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
             s_hat = c*y_hat;
             if(t==1)
                 mse = mean(power(abs(s_hat-s),2));
-            elseif((mean(power(abs(s_hat-s),2))-mse)>power(10,-4))
+            elseif((mean(power(abs(s_hat-s),2))-mse)>epsilon)
                 mse = mean(power(abs(s_hat-s),2));
                 break;
-            elseif((mean(power(abs(s_hat-s),2))-mse)<=power(10,-4))
+            elseif((mean(power(abs(s_hat-s),2))-mse)<=epsilon)
+                mse = mean(power(abs(s_hat-s),2));
                 break;
             end            
             t = t+1;
@@ -187,8 +198,10 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
             power(norm(w),2);
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
             else
+                lambda = 0;
+                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
             end
             %% Optimization of theta
             fprintf('\tOptimization of btheta...\n');
@@ -198,7 +211,8 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
             q = Phi*(1-conj(d)');
             [new_v] = opt_v(Q,q,v);
             [final_v] = discetet_phase(bit_of_phase,new_v);
-            btheta = diag(final_v);
+            v = final_v;
+            btheta = diag(v);
         
             %% Calculate mse
             fprintf('\tCalculate mmse...\n\n');
@@ -206,10 +220,11 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
             s_hat = c*y_hat;
             if(t==1)
                 mse = mean(power(abs(s_hat-s),2));
-            elseif((mean(power(abs(s_hat-s),2))-mse)>power(10,-4))
+            elseif((mean(power(abs(s_hat-s),2))-mse)>epsilon)
                 mse = mean(power(abs(s_hat-s),2));
                 break;
-            elseif((mean(power(abs(s_hat-s),2))-mse)<=power(10,-4))
+            elseif((mean(power(abs(s_hat-s),2))-mse)<=epsilon)
+                mse = mean(power(abs(s_hat-s),2));
                 break;
             end            
             t = t+1;
@@ -236,8 +251,10 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
             power(norm(w),2);
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
             else
+                lambda = 0;
+                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
             end
             %% Calculate mse
             fprintf('\tCalculate mmse...\n\n');
@@ -245,10 +262,11 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
             s_hat = c*y_hat;
             if(t==1)
                 mse = mean(power(abs(s_hat-s),2));
-            elseif((mean(power(abs(s_hat-s),2))-mse)>power(10,-4))
+            elseif((mean(power(abs(s_hat-s),2))-mse)>epsilon)
                 mse = mean(power(abs(s_hat-s),2));
                 break;
-            elseif((mean(power(abs(s_hat-s),2))-mse)<=power(10,-4))
+            elseif((mean(power(abs(s_hat-s),2))-mse)<=epsilon)
+                mse = mean(power(abs(s_hat-s),2));
                 break;
             end            
             t = t+1;

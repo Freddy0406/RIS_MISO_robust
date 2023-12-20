@@ -16,9 +16,6 @@ while(1)
         break;
     end
     i=i+1;
-    % if(i>1000)
-    %     break;
-    % end
 end
     newlambda = lambda;
 end
