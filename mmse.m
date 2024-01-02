@@ -74,7 +74,7 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
 %% mode 1:The proposed robust design
     if (mode==1)           
         while true
-            fprintf('The %d generation...\n',t);
+%             fprintf('The %d generation...\n',t);
             %% Optimization of c
             fprintf('\tOptimization of c...\n');        
             A = (G_hat'*btheta'*hr_hat)*hr_hat'*btheta*G_hat+...          %According to the formula              
@@ -88,15 +88,15 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Optimization of w
             fprintf('\tOptimization of w...\n');
-            w =  power((power(abs(c),2)*A),-1)*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
-            power(norm(w),2);
-            
+            lambda = 0.0;
+            w =  (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));
             else
                 lambda = 0;
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));
             end
             
             %% Optimization of theta
@@ -142,14 +142,15 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Optimization of w
             fprintf('\tOptimization of w...\n');
-            w =  power((power(abs(c),2)*A),-1)*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
-            power(norm(w),2);
+            lambda = 0.0;
+            w =  (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));
             else
                 lambda = 0;
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));
             end
             
             %% Optimization of theta
@@ -193,14 +194,15 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Optimization of w
             fprintf('\tOptimization of w...\n');
-            w = power((power(abs(c),2)*A),-1)*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
-            power(norm(w),2);
+            lambda = 0.0;
+            w =  (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));
             else
                 lambda = 0;
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));
             end
             %% Optimization of theta
             fprintf('\tOptimization of btheta...\n');
@@ -246,15 +248,16 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Optimization of w
             fprintf('\tOptimization of w...\n');
-            w = power((power(abs(c),2)*A),-1)*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
-            power(norm(w),2);
+            lambda = 0.0;
+            w =  (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
+                w = (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));
             else
                 lambda = 0;
-                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
-            end
+                w = (power(abs(c),2)*A+lambda*eye(M))^-1*(alpha*conj(c));
+            end            
             %% Calculate mse
             fprintf('\tCalculate mmse...\n\n');
             y_hat = ((hr'*btheta*G*w*s)*LoS*LoS_PL+nLoS*LoS_PL+(hd'*w*s)*Rayleigh_fading*nLoS_PL)+noise;
