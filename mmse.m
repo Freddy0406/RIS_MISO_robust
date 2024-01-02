@@ -4,7 +4,7 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
     %P0 Maximum transmit power of BS
     %variance var_g=var_r=var_d=var
     M = 4;                          %BS antenna amount
-    L0 = -30;                       %Path loss dB -30dB         
+    L0 = power(10,(-30/10));        %Path loss dB -30dB         
     AP_loc = [0 0];                 %AP location
     IRS_loc = [100,0];              %IRS location
     UE_loc = [100 20];              %User location
@@ -33,9 +33,8 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
                                                                                 %Use in non-LoS(AP->UE)
 
     K = 10;                                                                     %Rician fading factor
-    K_linear = 10^(K/10);                                                       %Use in LoS(AP->IRS->UE)
-    LoS = sqrt(K_linear / (K_linear + 1));                                      %Rician fading main lobe
-    nLoS = sqrt(1 / (K_linear + 1)) * (randn(size(s)) + 1i * randn(size(s)));   %Rician fading side lobe
+    LoS = sqrt(K / (K + 1));                                                    %Rician fading main lobe
+    nLoS = sqrt(1 / (K + 1)) * (randn(size(s)) + 1i * randn(size(s)));          %Rician fading side lobe
 
     %Noise
     noise_var = power(10,-11);                      %var_n = 110dBm = 10^-11 mW
@@ -71,7 +70,7 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
 
     
     %% Start optimization   
-    t=1;                    %Set times
+    t=1;                        %Set times
 %% mode 1:The proposed robust design
     if (mode==1)           
         while true
@@ -89,15 +88,15 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Optimization of w
             fprintf('\tOptimization of w...\n');
-            w =  (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            w =  power((power(abs(c),2)*A),-1)*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
             power(norm(w),2);
             
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             else
                 lambda = 0;
-                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             end
             
             %% Optimization of theta
@@ -143,14 +142,14 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Optimization of w
             fprintf('\tOptimization of w...\n');
-            w = (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            w =  power((power(abs(c),2)*A),-1)*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
             power(norm(w),2);
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             else
                 lambda = 0;
-                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             end
             
             %% Optimization of theta
@@ -194,14 +193,14 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Optimization of w
             fprintf('\tOptimization of w...\n');
-            w = (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            w = power((power(abs(c),2)*A),-1)*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
             power(norm(w),2);
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             else
                 lambda = 0;
-                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             end
             %% Optimization of theta
             fprintf('\tOptimization of btheta...\n');
@@ -247,14 +246,14 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Optimization of w
             fprintf('\tOptimization of w...\n');
-            w = (power(abs(c),2)*A)\(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
+            w = power((power(abs(c),2)*A),-1)*(alpha*conj(c));  %Assume lambda(Lagrange mult.) = 0
             power(norm(w),2);
             if(power(norm(w),2)>P0)
                 [lambda] = search(c,alpha,A,P0,M);
-                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             else
                 lambda = 0;
-                w = (power(abs(c),2)*A+lambda*eye(M))\(alpha*conj(c));
+                w = power((power(abs(c),2)*A+lambda*eye(M)),-1)*(alpha*conj(c));
             end
             %% Calculate mse
             fprintf('\tCalculate mmse...\n\n');

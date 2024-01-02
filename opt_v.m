@@ -14,10 +14,10 @@ while true
     else
     end
     v = next_v;  
-    i=i+1;
-    if(i>40000)
-        break;
-    end
+%     i=i+1;
+%     if(i>40000)
+%         break;
+%     end
 end   
     new_v = next_v;
 end

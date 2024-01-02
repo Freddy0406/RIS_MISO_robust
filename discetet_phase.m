@@ -7,16 +7,16 @@ new_v = zeros(size(v));
 for i = 1:length(v)
     for j = 1:length(phase_array)-1
         if(j==1)
-            distance = abs(v(i)-phase_array(j));
+            distance = abs(angle(v(i))-phase_array(j));
             decision = j;
         else
-            if(abs(v(i)-phase_array(j))<distance)
-                distance = abs(v(i)-phase_array(j));
+            if(abs(angle(v(i))-phase_array(j))<distance)
+                distance = abs(angle(v(i))-phase_array(j));
                 decision = j;
             end
         end
     end
-    new_v(i) = phase_array(decision);
+    new_v(i) = exp(j*phase_array(decision));
 end
 
 end
