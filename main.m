@@ -31,7 +31,6 @@ ppm = ParforProgressbar(iteration, 'showWorkerProgress', true);
 
 parfor i=1:1000
 
-    
     % Data for figure2
     temp_robust = zeros(3,5);
     temp_nonrobust = zeros(3,5);
@@ -47,35 +46,35 @@ parfor i=1:1000
     avg_mse_nonrobust = avg_mse_nonrobust+temp_nonrobust;
     
 
-%     temp_mse_robust_2 = zeros(2,6);
-%     temp_mse_nonrobust_2 = zeros(2,6);
-%     temp_mse_robust_discrete = zeros(2,6);
-%     temp_mse_without_IRS = zeros(1,6);
-% 
-%     
-%     for sig = 1:length(variance_arr_2)
-%         for N = 1:length(N_array)
-%             [mse,~]=mmse(N_array(N),variance_arr_2(sig),round(power(10,1),5),1,0);
-%             temp_mse_robust_2(sig,N) = mse;
-%             [mse,~]=mmse(N_array(N),variance_arr_2(sig),round(power(10,1),5),2,0);
-%             temp_mse_nonrobust_2(sig,N) = mse;
-%         end
-%     end
-%     avg_mse_robust_2 = avg_mse_robust_2+temp_mse_robust_2;
-%     avg_mse_nonrobust_2 = avg_mse_nonrobust_2+temp_mse_nonrobust_2;
-% 
-% 
-%     for N = 1:length(N_array)
-%         [mse,~]=mmse(N_array(N),variance_arr_2(1),round(power(10,1),5),3,2);
-%         temp_mse_robust_discrete(1,N) = mse;
-%         [mse,~]=mmse(N_array(N),variance_arr_2(1),round(power(10,1),5),3,3);
-%         temp_mse_robust_discrete(2,N) = mse;
-%         [mse,~]=mmse(N_array(N),variance_arr_2(1),round(power(10,1),5),4,0);
-%         temp_mse_without_IRS(1,N) = mse;
-%     end
-% 
-%     avg_mse_robust_discrete = avg_mse_robust_discrete+temp_mse_robust_discrete;
-%     avg_mse_without_IRS = avg_mse_without_IRS+temp_mse_without_IRS;
+    temp_mse_robust_2 = zeros(2,6);
+    temp_mse_nonrobust_2 = zeros(2,6);
+    temp_mse_robust_discrete = zeros(2,6);
+    temp_mse_without_IRS = zeros(1,6);
+
+    
+    for sig = 1:length(variance_arr_2)
+        for N = 1:length(N_array)
+            [mse,~]=mmse(N_array(N),variance_arr_2(sig),round(power(10,1),5),1,0);
+            temp_mse_robust_2(sig,N) = mse;
+            [mse,~]=mmse(N_array(N),variance_arr_2(sig),round(power(10,1),5),2,0);
+            temp_mse_nonrobust_2(sig,N) = mse;
+        end
+    end
+    avg_mse_robust_2 = avg_mse_robust_2+temp_mse_robust_2;
+    avg_mse_nonrobust_2 = avg_mse_nonrobust_2+temp_mse_nonrobust_2;
+
+
+    for N = 1:length(N_array)
+        [mse,~]=mmse(N_array(N),variance_arr_2(1),round(power(10,1),5),3,2);
+        temp_mse_robust_discrete(1,N) = mse;
+        [mse,~]=mmse(N_array(N),variance_arr_2(1),round(power(10,1),5),3,3);
+        temp_mse_robust_discrete(2,N) = mse;
+        [mse,~]=mmse(N_array(N),variance_arr_2(1),round(power(10,1),5),4,0);
+        temp_mse_without_IRS(1,N) = mse;
+    end
+
+    avg_mse_robust_discrete = avg_mse_robust_discrete+temp_mse_robust_discrete;
+    avg_mse_without_IRS = avg_mse_without_IRS+temp_mse_without_IRS;
 
     %Progressbar
     pause(100/iteration);
@@ -94,7 +93,7 @@ avg_mse_nonrobust = avg_mse_nonrobust./avg_N;
 %Change into dBm
 tx_power_arr = 10*log10(tx_power_arr);
 
-figure(1)
+figure(2)
 semilogy(tx_power_arr,avg_mse_robust(1,:),'r-o',tx_power_arr,avg_mse_robust(2,:),'b-square',tx_power_arr,avg_mse_robust(3,:),'k-diamond',tx_power_arr,avg_mse_nonrobust(1,:),'r--x',tx_power_arr,avg_mse_nonrobust(2,:),'g--^',tx_power_arr,avg_mse_nonrobust(3,:),'m--+');
 xlabel("Transmit Power (dBm)")
 ylabel("MSE")
@@ -108,7 +107,7 @@ avg_mse_nonrobust_2 = avg_mse_nonrobust_2./avg_N;
 avg_mse_robust_discrete = avg_mse_robust_discrete./avg_N;
 avg_mse_without_IRS = avg_mse_without_IRS./avg_N;
 
-figure(2);
+figure(3);
 semilogy(N_array,avg_mse_robust_2(1,:),'r-o',N_array,avg_mse_robust_2(2,:),'m-square',N_array,avg_mse_nonrobust_2(1,:),'c-*',N_array,avg_mse_nonrobust_2(2,:),'g-|',N_array,avg_mse_robust_discrete(1,:),'k--diamond',N_array,avg_mse_robust_discrete(2,:),'b--^',N_array,avg_mse_without_IRS,'k--x');
 xlabel("Reflecting Elements")
 ylabel("MSE")

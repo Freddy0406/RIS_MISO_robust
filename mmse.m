@@ -74,7 +74,7 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
 %% mode 1:The proposed robust design
     if (mode==1)           
         while true
-%             fprintf('The %d generation...\n',t);
+            fprintf('The %d generation...\n',t);
             %% Optimization of c
             fprintf('\tOptimization of c...\n');        
             A = (G_hat'*btheta'*hr_hat)*hr_hat'*btheta*G_hat+...          %According to the formula              
