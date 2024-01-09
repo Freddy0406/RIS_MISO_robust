@@ -9,13 +9,6 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
     IRS_loc = [100,0];              %IRS location
     UE_loc = [100 20];              %User location
 
-    s = rand;
-    if(s>0.5)
-        s = 1;
-    else 
-        s = -1;
-    end
-
     AP_UE_dis = sqrt(sum((UE_loc-AP_loc).^2));              %AP-UE distance  
     AP_IRS_dis = sqrt(sum((AP_loc-IRS_loc).^2));            %AP-IRS distance
     UE_IRS_dis = sqrt(sum((UE_loc-IRS_loc).^2));            %UE-IRS distance
@@ -27,10 +20,6 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
     nLoS_PL = 10^(nLoS_PL/10);
     epsilon = power(10,-4);                                 %Limit of optimization iteration
 
-
-    %Fading Channel
-    Rayleigh_fading = sqrt(0.5) * (randn(size(s)) + 1i * randn(size(s)));       %Random Rayleigh fading noise
-                                                                                %Use in non-LoS(AP->UE)
 
     K = 10;                                                                     %Rician fading factor
     LoS = sqrt(K / (K + 1));                                                    %Rician fading main lobe
@@ -60,7 +49,7 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
     % Emulate estimation channel
 
     G = vertcat(eye(M),zeros((N-M),M));     %Ideal channel => Identity matrix
-    hd = ones(M,1);                         %Ideal channel => All ones                         
+    hd = randn(M,1)+1i*randn(M,1);          %Ideal channel => All ones                         
     hr = ones(N,1);                         %Ideal channel => All ones
     
     G_hat = G-delta_G;          %G = G_hat+delta_G ; G_hat=G-delta_G        (AP-IRS)
@@ -111,18 +100,12 @@ function [mse,t]=mmse(N,variance,P0,mode,bit_of_phase)
         
             %% Calculate mse
             fprintf('\tCalculate mmse...\n\n');
-            y_hat = ((hr'*btheta*G*w*s)*LoS*LoS_PL+nLoS*LoS_PL+...
-                (hd'*w*s)*Rayleigh_fading*nLoS_PL)+noise;
-            s_hat = c*y_hat;
-            if(t==1)
-                mse = mean(power(abs(s_hat-s),2));
-            elseif((mean(power(abs(s_hat-s),2))-mse)>epsilon)
-                mse = mean(power(abs(s_hat-s),2));
-            elseif((mean(power(abs(s_hat-s),2))-mse)<=epsilon)
-                mse = mean(power(abs(s_hat-s),2));
+            mse = power(abs(c),2)*(w'*A*w+noise_var)-w'*alpha*conj(c)-c*alpha'*w+1;
+            if((mse_before-mse)>epsilon)
+                mse_before = mse;
+            elseif((mse_before-mse)<=epsilon)
                 break;
-            end
-                       
+            end             
             t = t+1;
         end
 %% mode 2:The non-robust scheme

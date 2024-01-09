@@ -38,14 +38,14 @@ parfor i=1:1000
         for power_index = 1:length(tx_power_arr)
             [mse,~]=mmse(40,variance_arr(sig),tx_power_arr(power_index),1,0);
             temp_robust(sig,power_index) = mse;
-            [mse,~]=mmse(40,variance_arr(sig),tx_power_arr(power_index),2,0);
-            temp_nonrobust(sig,power_index) = mse;
+%             [mse,~]=mmse(40,variance_arr(sig),tx_power_arr(power_index),2,0);
+%             temp_nonrobust(sig,power_index) = mse;
         end
     end
     avg_mse_robust = avg_mse_robust+temp_robust;
     avg_mse_nonrobust = avg_mse_nonrobust+temp_nonrobust;
     
-
+    % Data for figure3
     temp_mse_robust_2 = zeros(2,6);
     temp_mse_nonrobust_2 = zeros(2,6);
     temp_mse_robust_discrete = zeros(2,6);
